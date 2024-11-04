@@ -1,10 +1,9 @@
 from enum import Enum
 from typing import List, NamedTuple, Optional, Tuple
 
-from src.agents.agent import Agent
-
 
 class TURN_TYPE(Enum):
+    CHOOSE_TOPIC = "choose_topic"
     ASK_QUESTION = "ask_question"
     ANSWER_QUESTION = "answer_question"
     MAKE_GUESS = "make_guess"
@@ -34,13 +33,27 @@ class StepResult(NamedTuple):
     info: dict
 
 
-class Game20QEnv:
-    MAX_TURNS = 20
+KNOWLEDGE_BASE = [
+    "dog",
+    "cat",
+    "chicken",
+    "car",
+    "plane",
+]
 
-    def __init__(self, host_agent: Agent, guesser_agent: Agent, debug: bool = False):
+
+class Game20QEnv:
+    def __init__(
+        self,
+        host_agent: any,
+        guesser_agent: any,
+        debug: bool = False,
+        max_turns: int = 20,
+    ):
         self.host = host_agent
         self.guesser = guesser_agent
         self.debug = debug
+        self.max_turns = max_turns
 
         # State variables
         self.turn = 0
@@ -71,7 +84,7 @@ class Game20QEnv:
         self,
     ) -> Tuple[list[Observation], list[float], list[bool], dict]:
         """Execute one step of the environment"""
-        if self.turn >= self.MAX_TURNS:
+        if self.turn >= self.max_turns:
             return self._end_game("max_turns")
 
         if self.current_type == TURN_TYPE.ASK_QUESTION:
@@ -159,7 +172,7 @@ class Game20QEnv:
                 turn_type=self.current_type,
                 active=self.current_type == TURN_TYPE.ANSWER_QUESTION,
                 role=AGENT_ROLE.HOST,
-                remaining_turns=self.MAX_TURNS - self.turn,
+                remaining_turns=self.max_turns - self.turn,
                 current_question=self.current_question,
                 current_answer=self.current_answer,
             ),
@@ -170,7 +183,7 @@ class Game20QEnv:
                 active=self.current_type
                 in [TURN_TYPE.ASK_QUESTION, TURN_TYPE.MAKE_GUESS],
                 role=AGENT_ROLE.GUESSER,
-                remaining_turns=self.MAX_TURNS - self.turn,
+                remaining_turns=self.max_turns - self.turn,
                 current_question=self.current_question,
                 current_answer=self.current_answer,
             ),

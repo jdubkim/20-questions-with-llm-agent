@@ -93,7 +93,7 @@ def test_make_guess_step(env):
 
 
 def test_max_turns(env):
-    env.turn = env.MAX_TURNS
+    env.turn = env.max_turns
     obs, rewards, dones, info = env.step()
 
     assert info["reason"] == "max_turns"
