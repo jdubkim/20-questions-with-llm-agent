@@ -39,7 +39,6 @@ class OpenAIModelWrapper(ModelWrapper):
                 return response.choices[0].message.content
 
             except Exception as e:
-                last_exception = e
                 print(f"Attempt {attempt + 1} failed: {e}")
                 if attempt < self.max_retries - 1:
                     time.sleep(RETRY_WAIT_TIME)

@@ -1,6 +1,5 @@
 from dataclasses import dataclass, asdict
 from datetime import datetime
-from enum import Enum
 import json
 from pathlib import Path
 from typing import Optional

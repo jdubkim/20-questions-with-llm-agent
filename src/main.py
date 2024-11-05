@@ -3,11 +3,10 @@ import json
 import time
 from typing import Optional
 
-from src.env import Game20QEnv, TURN_TYPE, KNOWLEDGE_BASE
+from src.env import Game20QEnv, TURN_TYPE, KNOWLEDGE_BASE, Failure
 from src.agents.agent import HostAgent, GuesserAgent
 from src.agents.model import OpenAIModelWrapper
 from src.config import Config, EnvConfig, ModelConfig, PromptConfig
-from src.env import Game20QEnv, Failure
 from src.evaluator import Evaluator, Result
 from src.utils import PromptManager
 

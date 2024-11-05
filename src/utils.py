@@ -1,6 +1,7 @@
 import re
 from typing import Optional
-from src.env import Observation, KNOWLEDGE_BASE
+
+from src.env import Observation
 
 
 class PromptManager:

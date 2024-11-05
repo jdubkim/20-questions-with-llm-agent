@@ -1,7 +1,5 @@
 # tests/test_evaluator.py
 import pytest
-from pathlib import Path
-import json
 from datetime import datetime
 from src.evaluator import Result, Evaluator, Failure
 from src.config import Config, ModelConfig, EnvConfig, PromptConfig
