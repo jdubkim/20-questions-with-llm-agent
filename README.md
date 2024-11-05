@@ -1,26 +1,72 @@
-# 20-questions-with-llm-agent
+# 20 Questions with LLM Agents
 
-## Objective
+An implementation of the classic 20 Questions game using Large Language Model agents.
 
-* Build agents to play the game of 20 Questions.
-  * Agent must be a combination of two sub-agents: host, guesser.
-    * Host: Must choose hard "topic" of the game of the other agent in competitive setting. For co-operative setting, choose easy "topic". Also, correctly answer "Yes" or "No" to the questions asked by the guesser.
-    * Guesser: Choose a question each turn that can decrease the search space significantly. Also, guess the topic that is most likely to be the answer.
-  * Example step would be:
-    1. [Turn 0] Environment: Host, choose the topic.
-    2. [Turn 0] Host: Chicken (should be an object or living thing).
-    3. [Turn 1] Guesser: Question - Is it alive?
-    4. [Turn 1] Host: Yes.
-    5. [Turn 1] Guesser: Guess - human.
-    6. [Turn 1] Environment: Wrong.
-    7. [Turn 2] Guesser: Question - Is it an animal?
-    8. [Turn 2] Host: Yes.
-    9. [Turn 2] Guesser: Guess - bear.
-    10. [Turn 2] Environment: Wrong.
-    11. [Turn 3] Guesser: Question - Is it a bird?
-    12. [Turn 3] Host: Yes.
-    13. [Turn 3] Guesser: Quess - Chicken.
-    14. [Turn 3] Environment: Correct. End the game.
-  * Context provided to the agent
-    * Naive method: we can provide the history of messages.
-    *
+## Installation
+
+1. Clone the repository:
+
+```bash
+git clone https://github.com/yourusername/20-questions-with-llm-agent.git
+cd 20-questions-with-llm-agent
+```
+
+2. Install dependencies:
+
+   ```
+   pip install -r requirements.txt
+   ```
+3. Set up OpenAI API key:
+
+   ```
+   export OPENAI_API_KEY="your-api-key"
+   ```
+
+## Project Structure
+
+```
+.
+├── src/
+│   ├── agents/
+│   │   ├── agent.py     # Agent implementations
+│   │   └── model.py     # LLM wrapper
+│   ├── env.py           # Game environment
+│   ├── utils.py         # Utilities
+│   └── main.py          # Entry point
+├── tests/               # Unit tests
+└── README.md
+```
+
+## Usage
+
+Run the agent playing with default settings:
+
+```
+python -m src.main
+```
+
+With debug mode:
+
+```
+python -m src.main --debug
+```
+
+## Example Game
+
+```Game
+Game over! The topic was: plane
+Final Rewards - Host: 1.0, Guesser: 0.0
+Game History:
+Turn 0: Q: Is the topic a living thing? -> A: no -> Guess: A rock.
+Turn 1: Q: Is the topic a man-made object? -> A: yes -> Guess: A smartphone.
+Turn 2: Q: Is the topic primarily used for entertainment? -> A: no -> Guess: A kitchen appliance.
+Turn 3: Q: Is the topic used for construction or repair purposes? -> A: no -> Guess: A piece of furniture.
+Turn 4: Q: Is the topic an electronic device? -> A: no -> Guess: A book
+```
+
+
+
+## Additional Settings to Simplify the Tasks
+
+* Limited topics - the topic is randomly selected from 5 words, instead of letting host agent choose it (gpt-4o-mini found this task difficult, not sharing the chosen topic).
+* Max Turns: By default, decreased the max turns to 5 - this will save # tokens..

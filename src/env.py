@@ -1,7 +1,6 @@
 from enum import Enum
+import random
 from typing import List, NamedTuple, Optional, Tuple
-
-from src.agents.agent import Agent
 
 
 class TURN_TYPE(Enum):
@@ -25,6 +24,7 @@ class Observation(NamedTuple):
     remaining_turns: int
     current_question: Optional[str] = None
     current_answer: Optional[str] = None
+    topic: Optional[str] = None
 
 
 class StepResult(NamedTuple):
@@ -34,13 +34,27 @@ class StepResult(NamedTuple):
     info: dict
 
 
-class Game20QEnv:
-    MAX_TURNS = 20
+KNOWLEDGE_BASE = [
+    "dog",
+    "cat",
+    "chicken",
+    "car",
+    "plane",
+]
 
-    def __init__(self, host_agent: Agent, guesser_agent: Agent, debug: bool = False):
+
+class Game20QEnv:
+    def __init__(
+        self,
+        host_agent: any,
+        guesser_agent: any,
+        debug: bool = False,
+        max_turns: int = 20,
+    ):
         self.host = host_agent
         self.guesser = guesser_agent
         self.debug = debug
+        self.max_turns = max_turns
 
         # State variables
         self.turn = 0
@@ -54,16 +68,14 @@ class Game20QEnv:
         """Reset environment"""
         self.turn = 0
         self.history = []
-        self.topic = self.host.choose_topic()
+        self.topic = random.choice(KNOWLEDGE_BASE)
+
         self.current_type = TURN_TYPE.ASK_QUESTION
         self.current_question = None
         self.current_answer = None
 
-        if not isinstance(self.topic, str):
-            raise ValueError("Host must return string topic")
-
         if self.debug:
-            print(f"[DEBUG] Host chose topic: {self.topic}")
+            print(f"[DEBUG] Topic: {self.topic}")
 
         return self._get_observations()
 
@@ -71,7 +83,7 @@ class Game20QEnv:
         self,
     ) -> Tuple[list[Observation], list[float], list[bool], dict]:
         """Execute one step of the environment"""
-        if self.turn >= self.MAX_TURNS:
+        if self.turn >= self.max_turns:
             return self._end_game("max_turns")
 
         if self.current_type == TURN_TYPE.ASK_QUESTION:
@@ -103,6 +115,7 @@ class Game20QEnv:
         """Handle host answering question"""
         answer = self.host.respond(self._get_observations()[AGENT_ROLE.HOST.value])
         answer = answer.lower().strip()
+
         if answer not in ["yes", "no"]:
             raise ValueError("Answer must be 'yes' or 'no'")
 
@@ -159,9 +172,10 @@ class Game20QEnv:
                 turn_type=self.current_type,
                 active=self.current_type == TURN_TYPE.ANSWER_QUESTION,
                 role=AGENT_ROLE.HOST,
-                remaining_turns=self.MAX_TURNS - self.turn,
+                remaining_turns=self.max_turns - self.turn,
                 current_question=self.current_question,
                 current_answer=self.current_answer,
+                topic=self.topic,
             ),
             Observation(
                 turn=self.turn,
@@ -170,7 +184,7 @@ class Game20QEnv:
                 active=self.current_type
                 in [TURN_TYPE.ASK_QUESTION, TURN_TYPE.MAKE_GUESS],
                 role=AGENT_ROLE.GUESSER,
-                remaining_turns=self.MAX_TURNS - self.turn,
+                remaining_turns=self.max_turns - self.turn,
                 current_question=self.current_question,
                 current_answer=self.current_answer,
             ),
@@ -178,7 +192,11 @@ class Game20QEnv:
 
     def _check_guess(self, guess: str) -> bool:
         """Check if guess is correct"""
-        return guess.lower().strip() == self.topic.lower().strip()
+
+        guess = guess.lower().strip()
+        topic = self.topic.lower().strip()
+
+        return topic in guess
 
     def _end_game(self, reason: str) -> StepResult:
         """End game due to max turns or correct guess"""
