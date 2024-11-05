@@ -1,7 +1,7 @@
 import argparse
 import time
 
-from src.env import Game20QEnv, TURN_TYPE, AGENT_ROLE
+from src.env import Game20QEnv, TURN_TYPE
 from src.agents.agent import HostAgent, GuesserAgent
 from src.agents.model import OpenAIModelWrapper
 from src.utils import PromptManager
@@ -94,7 +94,7 @@ def main():
             done = True
             print(f"Game over! The topic was: {env.topic}")
             print(f"Final Rewards - Host: {rewards[0]}, Guesser: {rewards[1]}")
-            print(f"Game History:")
+            print("Game History:")
             for turn in env.history:
                 print(
                     f"Turn {turn['turn']}: Q: {turn['question']} -> A: {turn['answer']} -> Guess: {turn['guess']}"

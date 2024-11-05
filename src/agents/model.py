@@ -1,5 +1,4 @@
 from abc import ABC, abstractmethod
-import re
 import time
 
 from openai import OpenAI

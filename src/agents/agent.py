@@ -1,6 +1,6 @@
-from abc import ABC, abstractmethod
+from abc import ABC
 
-from src.env import Observation, TURN_TYPE, KNOWLEDGE_BASE
+from src.env import Observation, TURN_TYPE
 from src.agents.model import ModelWrapper
 from src.utils import PromptManager
 import src.utils as utils
