@@ -29,19 +29,20 @@ class BaseAgent(ABC):
 
 
 class HostAgent(BaseAgent):
-    def choose_topic(self, observation: Observation) -> str:
-        """Host chooses a topic to start the game."""
-        response = self.act(observation)
-        # TODO: Change calling KNOWLEDGE_BASE directly
-        response = utils.parse_check_valid_topic(response, KNOWLEDGE_BASE)
+    # def choose_topic(self, observation: Observation) -> str:
+    #     """Host chooses a topic to start the game."""
+    #     response = self.act(observation)
+    #     # TODO: Change calling KNOWLEDGE_BASE directly
+    #     response = utils.parse_check_valid_topic(response, KNOWLEDGE_BASE)
 
-        return response
+    #     return response
 
     def respond(self, observation: Observation) -> str:
         """Respond to the guesser's question."""
         if observation.turn_type != TURN_TYPE.ANSWER_QUESTION:
             raise ValueError("Host can only respond to questions.")
         response = self.act(observation)
+        response = utils.check_valid_response(response)
 
         return response
 

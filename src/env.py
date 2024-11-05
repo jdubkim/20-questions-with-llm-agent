@@ -1,9 +1,9 @@
 from enum import Enum
+import random
 from typing import List, NamedTuple, Optional, Tuple
 
 
 class TURN_TYPE(Enum):
-    CHOOSE_TOPIC = "choose_topic"
     ASK_QUESTION = "ask_question"
     ANSWER_QUESTION = "answer_question"
     MAKE_GUESS = "make_guess"
@@ -24,6 +24,7 @@ class Observation(NamedTuple):
     remaining_turns: int
     current_question: Optional[str] = None
     current_answer: Optional[str] = None
+    topic: Optional[str] = None
 
 
 class StepResult(NamedTuple):
@@ -67,16 +68,14 @@ class Game20QEnv:
         """Reset environment"""
         self.turn = 0
         self.history = []
-        self.topic = self.host.choose_topic()
+        self.topic = random.choice(KNOWLEDGE_BASE)
+
         self.current_type = TURN_TYPE.ASK_QUESTION
         self.current_question = None
         self.current_answer = None
 
-        if not isinstance(self.topic, str):
-            raise ValueError("Host must return string topic")
-
         if self.debug:
-            print(f"[DEBUG] Host chose topic: {self.topic}")
+            print(f"[DEBUG] Topic: {self.topic}")
 
         return self._get_observations()
 
@@ -116,6 +115,7 @@ class Game20QEnv:
         """Handle host answering question"""
         answer = self.host.respond(self._get_observations()[AGENT_ROLE.HOST.value])
         answer = answer.lower().strip()
+
         if answer not in ["yes", "no"]:
             raise ValueError("Answer must be 'yes' or 'no'")
 
@@ -175,6 +175,7 @@ class Game20QEnv:
                 remaining_turns=self.max_turns - self.turn,
                 current_question=self.current_question,
                 current_answer=self.current_answer,
+                topic=self.topic,
             ),
             Observation(
                 turn=self.turn,
@@ -191,7 +192,11 @@ class Game20QEnv:
 
     def _check_guess(self, guess: str) -> bool:
         """Check if guess is correct"""
-        return guess.lower().strip() == self.topic.lower().strip()
+
+        guess = guess.lower().strip()
+        topic = self.topic.lower().strip()
+
+        return topic in guess
 
     def _end_game(self, reason: str) -> StepResult:
         """End game due to max turns or correct guess"""

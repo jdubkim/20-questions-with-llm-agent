@@ -11,7 +11,7 @@ class MockAgent:
         self.ask_question = Mock(return_value=responses.get("question", "Is it alive?"))
         self.respond = Mock(return_value=responses.get("answer", "yes"))
         self.make_guess = Mock(return_value=responses.get("guess", "chicken"))
-        self.choose_topic = Mock(return_value=responses.get("topic", "chicken"))
+        # self.choose_topic = Mock(return_value=responses.get("topic", "chicken"))
 
 
 @pytest.fixture
@@ -78,6 +78,7 @@ def test_answer_question_step(env):
 
 def test_make_guess_step(env):
     env.reset()
+    env.topic = "chicken"
     env.step()  # Ask question
     env.step()  # Answer question
     obs, rewards, dones, info = env.step()  # Make guess
