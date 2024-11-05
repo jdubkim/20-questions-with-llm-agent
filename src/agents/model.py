@@ -3,6 +3,8 @@ import time
 
 from openai import OpenAI
 
+from src.env import Failure
+
 
 RETRY_WAIT_TIME = 1.0
 
@@ -32,11 +34,7 @@ class OpenAIModelWrapper(ModelWrapper):
                 )
 
                 if not response.choices:
-                    raise ValueError("Empty response from API")
-
-                print(response.usage)
-                print(f"[DEBUG] prompts: {prompts}")
-                print(f"API response: {response.choices[0].message.content}")
+                    raise ValueError(Failure.API_ERROR)
 
                 return response.choices[0].message.content
 
@@ -46,9 +44,7 @@ class OpenAIModelWrapper(ModelWrapper):
                 if attempt < self.max_retries - 1:
                     time.sleep(RETRY_WAIT_TIME)
 
-        raise RuntimeError(
-            f"Failed after {self.max_retries} attempts. Last error: {last_exception}"
-        )
+        raise RuntimeError(Failure.API_ERROR)
 
 
 class VLLMModelWrapper(ModelWrapper):
