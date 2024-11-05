@@ -3,7 +3,7 @@ import pytest
 from typing import Dict
 from unittest.mock import Mock
 
-from src.env import Game20QEnv, TURN_TYPE, AGENT_ROLE
+from src.env import Game20QEnv, TURN_TYPE, AGENT_ROLE, Failure
 
 
 class MockAgent:
@@ -124,12 +124,20 @@ def test_invalid_responses(env):
 
     # Test invalid question
     env.guesser.ask_question = Mock(return_value=123)
-    with pytest.raises(ValueError, match="Question must be string"):
+    with pytest.raises(ValueError, match=str(Failure.INVALID_QUESTION)):
         env.step()
 
     # Test invalid answer
     env.guesser.ask_question = Mock(return_value="Is it alive?")
     env.host.respond = Mock(return_value="maybe")
     env.step()  # Ask question
-    with pytest.raises(ValueError, match="Answer must be 'yes' or 'no'"):
+    with pytest.raises(ValueError, match=str(Failure.INVALID_ANSWER)):
+        env.step()
+
+    # Test invalid guess
+    env.guesser.ask_question = Mock(return_value="Is it alive?")
+    env.host.respond = Mock(return_value="yes")
+    env.guesser.make_guess = Mock(return_value=None)
+    env.step()  # Ask question
+    with pytest.raises(ValueError, match=str(Failure.INVALID_GUESS)):
         env.step()

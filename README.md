@@ -11,16 +11,17 @@ git clone https://github.com/yourusername/20-questions-with-llm-agent.git
 cd 20-questions-with-llm-agent
 ```
 
-2. Install dependencies:
+2. Install dependencies (python 3.10):
 
-   ```
-   pip install -r requirements.txt
-   ```
+```
+pip install -r requirements.txt
+```
+
 3. Set up OpenAI API key:
 
-   ```
-   export OPENAI_API_KEY="your-api-key"
-   ```
+```
+export OPENAI_API_KEY="your-api-key"
+```
 
 ## Project Structure
 
@@ -42,14 +43,21 @@ cd 20-questions-with-llm-agent
 Run the agent playing with default settings:
 
 ```
-python -m src.main
+python -m src.main --run-type play
 ```
 
-With debug mode:
+Run evaluation with multiple games:
+```
+python -m src.main --run-type eval --n-games 5
+```
 
-```
-python -m src.main --debug
-```
+
+## Game Settings
+Knowledge Base: Limited to 5 predefined topics for consistent evaluation
+Topic Selection: Random selection from knowledge base (list of topic candidates)
+Maximum Turns: 5 turns per game
+Guesser Information: Complete knowledge base  visible to guesser
+
 
 ## Example Game
 
@@ -64,9 +72,21 @@ Turn 3: Q: Is the topic used for construction or repair purposes? -> A: no -> Gu
 Turn 4: Q: Is the topic an electronic device? -> A: no -> Guess: A book
 ```
 
+## Evaluation
+Run evaluation mode to collect metrics:
+
+* Success Rate
+* Average Turns
+* Failure Analysis
+
+Results are saved in logs/ directory with:
+
+* Individual game logs
+* Configuration details
 
 
-## Additional Settings to Simplify the Tasks
+## TODO
+* Implement more sophisticated agents - ReAct (browse Wikipedia for factual checks)
+* Add knowledge library for guesser agents. Prepare a list of candidate topics and binary questions and create a table so that the agent can reduce the search space drastically.
+* Implement a multi-threading environment for parallel game simulations (multithreading because agents are called via APIs)
 
-* Limited topics - the topic is randomly selected from 5 words, instead of letting host agent choose it (gpt-4o-mini found this task difficult, not sharing the chosen topic).
-* Max Turns: By default, decreased the max turns to 5 - this will save # tokens..

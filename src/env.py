@@ -25,6 +25,15 @@ class Observation(NamedTuple):
     current_question: Optional[str] = None
     current_answer: Optional[str] = None
     topic: Optional[str] = None
+    knowledge_base: Optional[List[str]] = None
+
+
+class Failure(Enum):
+    INVALID_QUESTION = "Invalid question"
+    INVALID_GUESS = "Invalid guess"
+    INVALID_ANSWER = "Invalid answer"
+    API_ERROR = "API error"
+    MAX_TURNS_EXCEEDED = "Max turns exceeded"
 
 
 class StepResult(NamedTuple):
@@ -50,6 +59,7 @@ class Game20QEnv:
         guesser_agent: any,
         debug: bool = False,
         max_turns: int = 20,
+        knowledge_base: List[str] = KNOWLEDGE_BASE,
     ):
         self.host = host_agent
         self.guesser = guesser_agent
@@ -59,6 +69,8 @@ class Game20QEnv:
         # State variables
         self.turn = 0
         self.topic = None
+        self.knowledge_base = knowledge_base
+        self.n_topics = len(self.knowledge_base)
         self.history = []
         self.current_question = None
         self.current_answer = None
@@ -68,7 +80,7 @@ class Game20QEnv:
         """Reset environment"""
         self.turn = 0
         self.history = []
-        self.topic = random.choice(KNOWLEDGE_BASE)
+        self.topic = random.choice(self.knowledge_base)
 
         self.current_type = TURN_TYPE.ASK_QUESTION
         self.current_question = None
@@ -99,7 +111,7 @@ class Game20QEnv:
             self._get_observations()[AGENT_ROLE.GUESSER.value]
         )
         if not isinstance(question, str):
-            raise ValueError("Question must be string")
+            raise ValueError(Failure.INVALID_QUESTION)
 
         self.current_question = question
         self.current_type = TURN_TYPE.ANSWER_QUESTION
@@ -117,7 +129,7 @@ class Game20QEnv:
         answer = answer.lower().strip()
 
         if answer not in ["yes", "no"]:
-            raise ValueError("Answer must be 'yes' or 'no'")
+            raise ValueError(Failure.INVALID_ANSWER)
 
         self.current_answer = answer
         self.current_type = TURN_TYPE.MAKE_GUESS
@@ -135,7 +147,7 @@ class Game20QEnv:
             self._get_observations()[AGENT_ROLE.GUESSER.value]
         )
         if not isinstance(guess, str):
-            raise ValueError("Guess must be string")
+            raise ValueError(Failure.INVALID_GUESS)
 
         # Record completed turn
         turn_info = {
@@ -187,6 +199,7 @@ class Game20QEnv:
                 remaining_turns=self.max_turns - self.turn,
                 current_question=self.current_question,
                 current_answer=self.current_answer,
+                knowledge_base=self.knowledge_base,
             ),
         ]
 

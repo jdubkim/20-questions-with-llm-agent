@@ -31,13 +31,12 @@ class PromptManager:
             prompt_template = "".join(prompt_template)
 
         template_vars = obs._asdict()
-        # Add global variables
-        template_vars.update(
-            {
-                "KNOWLEDGE_BASE": ", ".join(KNOWLEDGE_BASE),
-                # Add other global vars here if needed
-            }
-        )
+        if obs.knowledge_base is not None:
+            template_vars.update(
+                {
+                    "knowledge_base": ", ".join(obs.knowledge_base),
+                }
+            )
 
         formatted_content = prompt_template.format(
             **{k: v for k, v in template_vars.items() if f"{{{k}}}" in prompt_template}
