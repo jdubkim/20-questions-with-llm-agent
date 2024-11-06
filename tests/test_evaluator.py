@@ -1,7 +1,10 @@
 # tests/test_evaluator.py
 import pytest
 from datetime import datetime
-from src.evaluator import Result, Evaluator, Failure
+import json
+from pathlib import Path
+
+from src.evaluator import Result, Evaluator
 from src.config import Config, ModelConfig, EnvConfig, PromptConfig
 
 
@@ -15,6 +18,7 @@ def sample_config():
             guesser_system="test guesser",
             templates={"test": {"role": "user", "content": "test"}},
         ),
+        run_id="test-run",
     )
 
 
@@ -31,53 +35,36 @@ def temp_log_dir(tmp_path):
     return tmp_path / "test_logs"
 
 
-class TestResult:
-    def test_result_initialization(self, sample_history):
-        result = Result(
-            topic="car",
-            n_topics=5,
-            num_turns=2,
-            success=True,
-            history=sample_history,
-            timestamp=datetime.now().isoformat(),
-        )
-        assert result.topic == "car"
-        assert result.num_turns == 2
-        assert result.success
-        assert result.history == sample_history
-
-    def test_result_with_failure(self, sample_history):
-        result = Result(
-            topic="car",
-            n_topics=10,
-            num_turns=2,
-            success=False,
-            failure=Failure.MAX_TURNS_EXCEEDED,
-            history=sample_history,
-            timestamp=datetime.now().isoformat(),
-        )
-        assert result.failure == Failure.MAX_TURNS_EXCEEDED
-
-
 class TestEvaluator:
     def test_evaluator_initialization(self, sample_config, temp_log_dir):
         evaluator = Evaluator(sample_config, log_dir=str(temp_log_dir))
         assert evaluator.config == sample_config
-        assert (temp_log_dir / "config.json").exists()
+        assert (temp_log_dir / sample_config.run_id / "config.json").exists()
 
     def test_log_game(self, sample_config, temp_log_dir, sample_history):
         evaluator = Evaluator(sample_config, log_dir=str(temp_log_dir))
         result = Result(
             topic="car",
-            n_topics=5,
             num_turns=2,
             success=True,
             history=sample_history,
             timestamp=datetime.now().isoformat(),
         )
         evaluator.log_game(result)
+
+        # Check result was added to evaluator
         assert len(evaluator.results) == 1
-        assert len(list(temp_log_dir.glob("game_*.json"))) == 1
+
+        # Check game log file exists
+        game_logs = list(Path(evaluator.log_dir).glob("game_*.json"))
+        assert len(game_logs) == 1
+
+        # Verify log content
+        with open(game_logs[0]) as f:
+            log_data = json.load(f)
+            assert log_data["topic"] == "car"
+            assert log_data["num_turns"] == 2
+            assert log_data["success"] is True
 
     def test_calculate_metrics(self, sample_config, temp_log_dir, sample_history):
         evaluator = Evaluator(sample_config, log_dir=str(temp_log_dir))
@@ -86,7 +73,6 @@ class TestEvaluator:
         results = [
             Result(
                 topic="car",
-                n_topics=5,
                 num_turns=2,
                 success=True,
                 history=sample_history,
@@ -94,10 +80,9 @@ class TestEvaluator:
             ),
             Result(
                 topic="dog",
-                n_topics=5,
                 num_turns=5,
                 success=False,
-                failure=Failure.MAX_TURNS_EXCEEDED,
+                failure="",
                 history=sample_history,
                 timestamp=datetime.now().isoformat(),
             ),

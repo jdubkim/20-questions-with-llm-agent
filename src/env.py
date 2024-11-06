@@ -1,6 +1,11 @@
 from enum import Enum
-import random
 from typing import List, NamedTuple, Optional, Tuple
+import random
+from src.exceptions import (
+    InvalidQuestionError,
+    InvalidGuessError,
+    InvalidAnswerError,
+)
 
 
 class TURN_TYPE(Enum):
@@ -28,14 +33,6 @@ class Observation(NamedTuple):
     knowledge_base: Optional[List[str]] = None
 
 
-class Failure(Enum):
-    INVALID_QUESTION = "Invalid question"
-    INVALID_GUESS = "Invalid guess"
-    INVALID_ANSWER = "Invalid answer"
-    API_ERROR = "API error"
-    MAX_TURNS_EXCEEDED = "Max turns exceeded"
-
-
 class StepResult(NamedTuple):
     observations: List[Observation]
     rewards: List[float]
@@ -43,23 +40,14 @@ class StepResult(NamedTuple):
     info: dict
 
 
-KNOWLEDGE_BASE = [
-    "dog",
-    "cat",
-    "chicken",
-    "car",
-    "plane",
-]
-
-
 class Game20QEnv:
     def __init__(
         self,
         host_agent: any,
         guesser_agent: any,
+        knowledge_base: List[str],
         debug: bool = False,
         max_turns: int = 20,
-        knowledge_base: List[str] = KNOWLEDGE_BASE,
     ):
         self.host = host_agent
         self.guesser = guesser_agent
@@ -67,10 +55,9 @@ class Game20QEnv:
         self.max_turns = max_turns
 
         # State variables
-        self.turn = 0
+        self.turn = 1
         self.topic = None
         self.knowledge_base = knowledge_base
-        self.n_topics = len(self.knowledge_base)
         self.history = []
         self.current_question = None
         self.current_answer = None
@@ -78,7 +65,7 @@ class Game20QEnv:
 
     def reset(self) -> list[Observation]:
         """Reset environment"""
-        self.turn = 0
+        self.turn = 1
         self.history = []
         self.topic = random.choice(self.knowledge_base)
 
@@ -111,7 +98,7 @@ class Game20QEnv:
             self._get_observations()[AGENT_ROLE.GUESSER.value]
         )
         if not isinstance(question, str):
-            raise ValueError(Failure.INVALID_QUESTION)
+            raise InvalidQuestionError("Guesser must ask a valid question.")
 
         self.current_question = question
         self.current_type = TURN_TYPE.ANSWER_QUESTION
@@ -129,7 +116,7 @@ class Game20QEnv:
         answer = answer.lower().strip()
 
         if answer not in ["yes", "no"]:
-            raise ValueError(Failure.INVALID_ANSWER)
+            raise InvalidAnswerError("Host must respond with 'yes' or 'no'.")
 
         self.current_answer = answer
         self.current_type = TURN_TYPE.MAKE_GUESS
@@ -147,7 +134,7 @@ class Game20QEnv:
             self._get_observations()[AGENT_ROLE.GUESSER.value]
         )
         if not isinstance(guess, str):
-            raise ValueError(Failure.INVALID_GUESS)
+            raise InvalidGuessError("Guesser must make a valid guess.")
 
         # Record completed turn
         turn_info = {

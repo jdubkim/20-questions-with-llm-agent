@@ -3,7 +3,9 @@ import pytest
 from typing import Dict
 from unittest.mock import Mock
 
-from src.env import Game20QEnv, TURN_TYPE, AGENT_ROLE, Failure
+from src.env import Game20QEnv, TURN_TYPE, AGENT_ROLE
+from src.exceptions import InvalidQuestionError, InvalidAnswerError, InvalidGuessError
+from src.main import KNOWLEDGE_BASE
 
 
 class MockAgent:
@@ -26,7 +28,7 @@ def mock_guesser():
 
 @pytest.fixture
 def env(mock_host, mock_guesser):
-    return Game20QEnv(mock_host, mock_guesser, True)
+    return Game20QEnv(mock_host, mock_guesser, KNOWLEDGE_BASE, True)
 
 
 def test_reset(env):
@@ -106,7 +108,7 @@ def test_max_turns(env):
 def test_wrong_guess(env, mock_host, mock_guesser):  # Use fixtures as parameters
     # Override guesser's guess
     mock_guesser.make_guess = Mock(return_value="dog")
-    env = Game20QEnv(mock_host, mock_guesser)
+    env = Game20QEnv(mock_host, mock_guesser, KNOWLEDGE_BASE)
 
     env.reset()
     env.step()  # Ask question
@@ -124,20 +126,20 @@ def test_invalid_responses(env):
 
     # Test invalid question
     env.guesser.ask_question = Mock(return_value=123)
-    with pytest.raises(ValueError, match=str(Failure.INVALID_QUESTION)):
+    with pytest.raises(InvalidQuestionError):
         env.step()
 
     # Test invalid answer
     env.guesser.ask_question = Mock(return_value="Is it alive?")
     env.host.respond = Mock(return_value="maybe")
     env.step()  # Ask question
-    with pytest.raises(ValueError, match=str(Failure.INVALID_ANSWER)):
+    with pytest.raises(InvalidAnswerError):
         env.step()
 
     # Test invalid guess
     env.guesser.ask_question = Mock(return_value="Is it alive?")
     env.host.respond = Mock(return_value="yes")
-    env.guesser.make_guess = Mock(return_value=None)
     env.step()  # Ask question
-    with pytest.raises(ValueError, match=str(Failure.INVALID_GUESS)):
+    env.guesser.make_guess = Mock(return_value=None)
+    with pytest.raises(InvalidGuessError):
         env.step()

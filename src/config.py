@@ -56,6 +56,7 @@ class Config:
     model: ModelConfig
     env: EnvConfig
     prompts: PromptConfig
+    run_id: str
     n_games: int = 1
 
     def save(self, path: Path):

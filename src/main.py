@@ -1,15 +1,30 @@
 import argparse
+from datetime import datetime
 import json
 import time
 from typing import Optional
 
-from src.env import Game20QEnv, TURN_TYPE, KNOWLEDGE_BASE, Failure
+from src.env import Game20QEnv, TURN_TYPE
 from src.agent import HostAgent, GuesserAgent
 from src.model import OpenAIModelWrapper
-from src.config import Config, EnvConfig, ModelConfig, PromptConfig
-from src.evaluator import Evaluator, Result
 from src.utils import PromptManager
+from src.config import Config, ModelConfig, EnvConfig, PromptConfig
+from src.evaluator import Evaluator, Result
+from src.exceptions import (
+    InvalidQuestionError,
+    InvalidAnswerError,
+    InvalidGuessError,
+    APIError,
+)
 
+
+KNOWLEDGE_BASE = [
+    "dog",
+    "cat",
+    "chicken",
+    "car",
+    "plane",
+]
 
 HOST_SYSTEM_PROMPT = (
     "You are hosting a game of 20 questions game. Your role is to:\n"
@@ -63,6 +78,12 @@ def parse_args():
         help="The type of run to execute: play or eval.",
     )
     parser.add_argument(
+        "--run-id",
+        type=str,
+        default=str(int(time.time())),
+        help="Unique identifier for the run.",
+    )
+    parser.add_argument(
         "--n-games",
         type=int,
         default=5,
@@ -86,19 +107,17 @@ def parse_args():
     return parser.parse_args()
 
 
-def log_failure(env: Game20QEnv, failure: Failure, evaluator: Evaluator):
-    """Log the failure and return the failure message."""
-    result = Result(
-        topic=env.topic,
-        n_topics=env.n_topics,
-        num_turns=env.turn,
-        success=False,
-        failure=failure,
-        history=env.history,
-        timestamp=time.time(),
-    )
-    evaluator.log_game(result)
-    return failure
+def exception_to_failure(e: Exception) -> str:
+    if isinstance(e, InvalidQuestionError):
+        return "Invalid question"
+    elif isinstance(e, InvalidAnswerError):
+        return "Invalid answer"
+    elif isinstance(e, InvalidGuessError):
+        return "Invalid guess"
+    elif isinstance(e, APIError):
+        return "API error"
+    else:
+        return "Unknown error"
 
 
 def print_result(env: Game20QEnv, result: Result):
@@ -110,9 +129,7 @@ def print_result(env: Game20QEnv, result: Result):
         )
 
 
-def run_play(
-    config, evaluator: Optional[Evaluator] = None, verbose: int = 0
-) -> Optional[Result]:
+def run_play(config, evaluator: Optional[Evaluator] = None) -> Optional[Result]:
     """Run a single game"""
     # Initialize model and prompt managers
     model = OpenAIModelWrapper(
@@ -134,42 +151,49 @@ def run_play(
     env = Game20QEnv(
         host,
         guesser,
+        knowledge_base=config.env.knowledge_base,
         debug=config.env.debug,
         max_turns=config.env.max_turns,
-        knowledge_base=config.env.knowledge_base,
     )
 
     # Run the game
     observations = env.reset()
     done = False
 
-    while not done:
-        try:
+    try:
+        while not done:
             observations, rewards, dones, info = env.step()
-
             if any(dones):
                 done = True
-        except Exception as e:
-            print(f"An error occurred: {e}")
-            failure = e.args[0]
-            if evaluator is not None:
-                return log_failure(env, failure, evaluator)
+    except Exception as e:
+        failure_reason = exception_to_failure(e)
+        result = Result(
+            topic=env.topic,
+            num_turns=env.turn,
+            suceess=False,
+            history=env.history,
+            failure=failure_reason,
+            timestamp=datetime.now().isoformat(),
+        )
+        if evaluator is not None:
+            evaluator.log_game(result)
+        else:
+            print(f"Game failed with reason: {failure_reason}")
+        return result
 
     success = info.get("reason") == "correct_guess"
     result = Result(
         topic=env.topic,
-        n_topics=env.n_topics,
         num_turns=env.turn,
         success=success,
         history=env.history,
-        failure=Failure.MAX_TURNS_EXCEEDED if not success else None,
-        timestamp=time.time(),
+        failure=None if success else "Max turns exceeded",
+        timestamp=datetime.now().isoformat(),
     )
 
     if evaluator:
         evaluator.log_game(result)
-
-    if verbose:
+    else:
         print_result(env, result)
 
     return result
@@ -180,7 +204,7 @@ def run_eval(config: Config):
     evaluator = Evaluator(config)
 
     for _ in range(config.n_games):
-        run_play(config, evaluator, verbose=1)
+        run_play(config, evaluator)
 
     metrics = evaluator.calculate_metrics()
     print(f"Metrics for {config.n_games} games:")
@@ -199,12 +223,14 @@ def main():
         env=EnvConfig(
             max_turns=args.max_turns,
             debug=args.debug,
+            knowledge_base=KNOWLEDGE_BASE,
         ),
         prompts=PromptConfig(
             host_system=HOST_SYSTEM_PROMPT,
             guesser_system=GUESSER_SYSTEM_PROMPT,
             templates=PROMPT_TEMPLATES,
         ),
+        run_id=args.run_id,
         n_games=args.n_games,
     )
 
