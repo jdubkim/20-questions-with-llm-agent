@@ -1,7 +1,7 @@
 from abc import ABC
 
 from src.env import Observation, TURN_TYPE
-from src.agents.model import ModelWrapper
+from src.model import ModelWrapper
 from src.utils import PromptManager
 import src.utils as utils
 

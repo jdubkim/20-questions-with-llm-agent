@@ -4,8 +4,8 @@ import time
 from typing import Optional
 
 from src.env import Game20QEnv, TURN_TYPE, KNOWLEDGE_BASE, Failure
-from src.agents.agent import HostAgent, GuesserAgent
-from src.agents.model import OpenAIModelWrapper
+from src.agent import HostAgent, GuesserAgent
+from src.model import OpenAIModelWrapper
 from src.config import Config, EnvConfig, ModelConfig, PromptConfig
 from src.evaluator import Evaluator, Result
 from src.utils import PromptManager

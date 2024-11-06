@@ -28,13 +28,12 @@ export OPENAI_API_KEY="your-api-key"
 ```
 .
 ├── src/
-│   ├── agents/
-│   │   ├── agent.py     # Agent implementations
-│   │   └── model.py     # LLM wrapper
-│   ├── env.py           # Game environment
-│   ├── utils.py         # Utilities
-│   └── main.py          # Entry point
-├── tests/               # Unit tests
+│   ├── agent.py     # Agent implementations
+│   └── model.py     # LLM wrapper
+│   ├── env.py       # Game environment
+│   ├── utils.py     # Utilities
+│   └── main.py      # Entry point
+├── tests/           # Unit tests
 └── README.md
 ```
 

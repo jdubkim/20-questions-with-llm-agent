@@ -1,9 +1,9 @@
 import pytest
 from unittest.mock import Mock
 from src.env import Observation, TURN_TYPE, AGENT_ROLE
-from src.agents.agent import HostAgent, GuesserAgent
+from src.agent import HostAgent, GuesserAgent
 from src.utils import PromptManager
-from src.agents.model import ModelWrapper
+from src.model import ModelWrapper
 
 
 @pytest.fixture
