@@ -1,4 +1,5 @@
 import argparse
+import asyncio
 from datetime import datetime
 import json
 import time
@@ -129,7 +130,7 @@ def print_result(env: Game20QEnv, result: Result):
         )
 
 
-def run_play(config, evaluator: Optional[Evaluator] = None) -> Optional[Result]:
+async def run_play(config) -> Optional[Result]:
     """Run a single game"""
     # Initialize model and prompt managers
     model = OpenAIModelWrapper(
@@ -162,7 +163,7 @@ def run_play(config, evaluator: Optional[Evaluator] = None) -> Optional[Result]:
 
     try:
         while not done:
-            observations, rewards, dones, info = env.step()
+            observations, rewards, dones, info = await env.step()
             if any(dones):
                 done = True
     except Exception as e:
@@ -170,15 +171,11 @@ def run_play(config, evaluator: Optional[Evaluator] = None) -> Optional[Result]:
         result = Result(
             topic=env.topic,
             num_turns=env.turn,
-            suceess=False,
+            success=False,
             history=env.history,
             failure=failure_reason,
             timestamp=datetime.now().isoformat(),
         )
-        if evaluator is not None:
-            evaluator.log_game(result)
-        else:
-            print(f"Game failed with reason: {failure_reason}")
         return result
 
     success = info.get("reason") == "correct_guess"
@@ -190,21 +187,23 @@ def run_play(config, evaluator: Optional[Evaluator] = None) -> Optional[Result]:
         failure=None if success else "Max turns exceeded",
         timestamp=datetime.now().isoformat(),
     )
-
-    if evaluator:
-        evaluator.log_game(result)
-    else:
-        print_result(env, result)
-
     return result
 
 
-def run_eval(config: Config):
+async def run_eval(config: Config):
     """Run multiple games to evaluate the agents."""
+    # TODO: Change evaluator to run in parallel
     evaluator = Evaluator(config)
+    tasks = []
 
-    for _ in range(config.n_games):
-        run_play(config, evaluator)
+    for game in range(config.n_games):
+        task = asyncio.create_task(run_play(config))
+        tasks.append(task)
+
+    results = await asyncio.gather(*tasks)
+
+    for result in results:
+        evaluator.log_game(result)
 
     metrics = evaluator.calculate_metrics()
     print(f"Metrics for {config.n_games} games:")
@@ -235,10 +234,11 @@ def main():
     )
 
     if args.run_type == "play":
-        run_play(config)
-
-    if args.run_type == "eval":
-        run_eval(config)
+        asyncio.run(run_play(config))
+    elif args.run_type == "eval":
+        asyncio.run(run_eval(config))
+    else:
+        print(f"Incorrect run type: {args.run_type}. Choose 'play' or 'eval'.")
 
 
 if __name__ == "__main__":

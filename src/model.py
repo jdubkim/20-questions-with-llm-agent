@@ -1,7 +1,6 @@
 from abc import ABC, abstractmethod
-import time
-
-from openai import OpenAI
+import asyncio
+from openai import AsyncOpenAI
 
 from src.exceptions import APIError
 
@@ -11,7 +10,7 @@ RETRY_WAIT_TIME = 1.0
 
 class ModelWrapper(ABC):
     @abstractmethod
-    def generate(self, prompt: str) -> str:
+    async def generate(self, prompt: str, **kwargs) -> str:
         """Generate text based on the prompt."""
         pass
 
@@ -23,13 +22,13 @@ class OpenAIModelWrapper(ModelWrapper):
         max_retries: int = 3,
     ):
         self.model_name = model_name
-        self.client = OpenAI()
+        self.client = AsyncOpenAI()
         self.max_retries = max_retries
 
-    def generate(self, prompts: list[dict[str, str]], **kwargs) -> str:
+    async def generate(self, prompts: list[dict[str, str]], **kwargs) -> str:
         for attempt in range(self.max_retries):
             try:
-                response = self.client.chat.completions.create(
+                response = await self.client.chat.completions.create(
                     model=self.model_name, messages=prompts, **kwargs
                 )
 
@@ -41,7 +40,7 @@ class OpenAIModelWrapper(ModelWrapper):
             except Exception as e:
                 print(f"Attempt {attempt + 1} failed: {e}")
                 if attempt < self.max_retries - 1:
-                    time.sleep(RETRY_WAIT_TIME)
+                    asyncio.sleep(RETRY_WAIT_TIME)
 
         raise APIError("Failed to generate response.")
 
