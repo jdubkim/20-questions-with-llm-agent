@@ -1,5 +1,5 @@
 from enum import Enum
-from typing import List, NamedTuple, Optional, Tuple
+from typing import NamedTuple, Optional
 import random
 from src.exceptions import (
     InvalidQuestionError,
@@ -22,7 +22,7 @@ class AGENT_ROLE(Enum):
 
 class Observation(NamedTuple):
     turn: int
-    history: List[dict]
+    history: list[dict]
     turn_type: TURN_TYPE
     active: bool
     role: AGENT_ROLE
@@ -30,13 +30,13 @@ class Observation(NamedTuple):
     current_question: Optional[str] = None
     current_answer: Optional[str] = None
     topic: Optional[str] = None
-    knowledge_base: Optional[List[str]] = None
+    knowledge_base: Optional[list[str]] = None
 
 
 class StepResult(NamedTuple):
-    observations: List[Observation]
-    rewards: List[float]
-    dones: List[bool]
+    observations: list[Observation]
+    rewards: list[float]
+    dones: list[bool]
     info: dict
 
 
@@ -45,7 +45,7 @@ class Game20QEnv:
         self,
         host_agent: any,
         guesser_agent: any,
-        knowledge_base: List[str],
+        knowledge_base: list[str],
         debug: bool = False,
         max_turns: int = 20,
     ):
@@ -78,23 +78,21 @@ class Game20QEnv:
 
         return self._get_observations()
 
-    def step(
-        self,
-    ) -> Tuple[list[Observation], list[float], list[bool], dict]:
+    async def step(self) -> StepResult:
         """Execute one step of the environment"""
-        if self.turn >= self.max_turns:
+        if self.turn > self.max_turns:
             return self._end_game("max_turns")
 
         if self.current_type == TURN_TYPE.ASK_QUESTION:
-            return self._handle_ask_question()
+            return await self._handle_ask_question()
         elif self.current_type == TURN_TYPE.ANSWER_QUESTION:
-            return self._handle_answer_question()
+            return await self._handle_answer_question()
         elif self.current_type == TURN_TYPE.MAKE_GUESS:
-            return self._handle_make_guess()
+            return await self._handle_make_guess()
 
-    def _handle_ask_question(self) -> StepResult:
+    async def _handle_ask_question(self) -> StepResult:
         """Handle guesser asking question"""
-        question = self.guesser.ask_question(
+        question = await self.guesser.ask_question(
             self._get_observations()[AGENT_ROLE.GUESSER.value]
         )
         if not isinstance(question, str):
@@ -110,9 +108,11 @@ class Game20QEnv:
             {"action": "question_asked", "question": question},
         )
 
-    def _handle_answer_question(self) -> StepResult:
+    async def _handle_answer_question(self) -> StepResult:
         """Handle host answering question"""
-        answer = self.host.respond(self._get_observations()[AGENT_ROLE.HOST.value])
+        answer = await self.host.respond(
+            self._get_observations()[AGENT_ROLE.HOST.value]
+        )
         answer = answer.lower().strip()
 
         if answer not in ["yes", "no"]:
@@ -128,9 +128,9 @@ class Game20QEnv:
             {"action": "question_answered", "answer": answer},
         )
 
-    def _handle_make_guess(self) -> StepResult:
+    async def _handle_make_guess(self) -> StepResult:
         """Handle guesser making guess"""
-        guess = self.guesser.make_guess(
+        guess = await self.guesser.make_guess(
             self._get_observations()[AGENT_ROLE.GUESSER.value]
         )
         if not isinstance(guess, str):
